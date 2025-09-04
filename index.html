@@ -1,137 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login & Signup</title>
-  <link rel="stylesheet" href="main.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login & Signup - Firebase Auth</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; display:flex; justify-content:center; align-items:center; padding:20px;
+        }
+        .container { background:#fff; border-radius:10px; box-shadow:0 15px 30px rgba(0,0,0,.1); width:100%; max-width:400px; overflow:hidden; }
+        .form-container { padding:30px; }
+        .tabs { display:flex; margin-bottom:20px; }
+        .tab { flex:1; text-align:center; padding:10px; cursor:pointer; border-bottom:2px solid #eee; font-weight:600; color:#888; }
+        .tab.active { color:#667eea; border-bottom:2px solid #667eea; }
+        h2 { text-align:center; margin-bottom:20px; color:#333; }
+        .form-group { margin-bottom:15px; }
+        label { display:block; margin-bottom:5px; font-weight:500; color:#555; }
+        input { width:100%; padding:12px; border:1px solid #ddd; border-radius:5px; font-size:16px; transition:border .3s; }
+        input:focus { border-color:#667eea; outline:none; }
+        button { width:100%; padding:12px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; border:none; border-radius:5px; font-size:16px; cursor:pointer; transition:opacity .3s; }
+        button:hover { opacity:.9; }
+        .message { margin-top:15px; text-align:center; color:#666; font-size:14px; }
+        .message a { color:#667eea; text-decoration:none; }
+        .alert { padding:10px; border-radius:5px; margin-bottom:15px; display:none; }
+        .alert-success { background:#d4edda; color:#155724; }
+        .alert-error { background:#f8d7da; color:#721c24; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="tabs">
-      <div class="tab active" id="login-tab">Login</div>
-      <div class="tab" id="signup-tab">Sign Up</div>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" id="login-tab">Login</div>
+            <div class="tab" id="signup-tab">Sign Up</div>
+        </div>
+
+        <div class="form-container">
+            <!-- Login -->
+            <div id="login-form">
+                <h2>Welcome Back</h2>
+                <div id="login-alert" class="alert"></div>
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email" />
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password" />
+                </div>
+                <button id="login-btn">Login</button>
+                <div class="message">
+                    Don't have an account? <a href="#" id="to-signup">Sign Up</a>
+                </div>
+            </div>
+
+            <!-- Signup -->
+            <div id="signup-form" style="display:none;">
+                <h2>Create Account</h2>
+                <div id="signup-alert" class="alert"></div>
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email" />
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password (min. 6 characters)" />
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" placeholder="Confirm your password" />
+                </div>
+                <button id="signup-btn">Sign Up</button>
+                <div class="message">
+                    Already have an account? <a href="#" id="to-login">Login</a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="form-container">
-      <!-- Login -->
-      <div id="login-form">
-        <h2>Welcome Back</h2>
-        <div id="login-alert" class="alert"></div>
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" />
-        </div>
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" />
-        </div>
-        <button id="login-btn">Login</button>
-        <div class="message">
-          Don’t have an account? <a href="#" id="to-signup">Sign Up</a>
-        </div>
-      </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-      <!-- Signup -->
-      <div id="signup-form" style="display: none;">
-        <h2>Create Account</h2>
-        <div id="signup-alert" class="alert"></div>
-        <div class="form-group">
-          <label for="signup-email">Email</label>
-          <input type="email" id="signup-email" />
-        </div>
-        <div class="form-group">
-          <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" />
-        </div>
-        <div class="form-group">
-          <label for="confirm-password">Confirm Password</label>
-          <input type="password" id="confirm-password" />
-        </div>
-        <button id="signup-btn">Sign Up</button>
-        <div class="message">
-          Already have an account? <a href="#" id="to-login">Login</a>
-        </div>
-      </div>
-    </div>
-  </div>
+        // ✅ Use your existing Firebase project config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtber_vI7Um--ZMaewPuTl8OGb9RDsxqM",
+            authDomain: "kahseng-9092f.firebaseapp.com",
+            databaseURL: "https://kahseng-9092f-default-rtdb.firebaseio.com",
+            projectId: "kahseng-9092f",
+            storageBucket: "kahseng-9092f.firebasestorage.app",
+            messagingSenderId: "676092858157",
+            appId: "1:676092858157:web:1fd51f23c334584ce00da4",
+            measurementId: "G-NBJLZ62N4N"
+        };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DB_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID",
-    };
+        // Elements
+        const loginTab = document.getElementById("login-tab");
+        const signupTab = document.getElementById("signup-tab");
+        const loginForm = document.getElementById("login-form");
+        const signupForm = document.getElementById("signup-form");
+        const toSignup = document.getElementById("to-signup");
+        const toLogin = document.getElementById("to-login");
+        const loginBtn = document.getElementById("login-btn");
+        const signupBtn = document.getElementById("signup-btn");
+        const loginAlert = document.getElementById("login-alert");
+        const signupAlert = document.getElementById("signup-alert");
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+        // Tabs
+        loginTab.addEventListener("click", () => {
+            loginTab.classList.add("active");
+            signupTab.classList.remove("active");
+            loginForm.style.display = "block";
+            signupForm.style.display = "none";
+        });
+        signupTab.addEventListener("click", () => {
+            signupTab.classList.add("active");
+            loginTab.classList.remove("active");
+            signupForm.style.display = "block";
+            loginForm.style.display = "none";
+        });
+        toSignup.addEventListener("click", (e) => { e.preventDefault(); signupTab.click(); });
+        toLogin.addEventListener("click", (e) => { e.preventDefault(); loginTab.click(); });
 
-    const loginTab = document.getElementById("login-tab");
-    const signupTab = document.getElementById("signup-tab");
-    const loginForm = document.getElementById("login-form");
-    const signupForm = document.getElementById("signup-form");
-    const toSignup = document.getElementById("to-signup");
-    const toLogin = document.getElementById("to-login");
-    const loginBtn = document.getElementById("login-btn");
-    const signupBtn = document.getElementById("signup-btn");
-    const loginAlert = document.getElementById("login-alert");
-    const signupAlert = document.getElementById("signup-alert");
+        // Helpers
+        function showAlert(el, message, type) {
+            el.textContent = message;
+            el.classList.remove("alert-success", "alert-error");
+            el.classList.add(type === "success" ? "alert-success" : "alert-error");
+            el.style.display = "block";
+            setTimeout(() => (el.style.display = "none"), 5000);
+        }
 
-    // tab switching
-    loginTab.addEventListener("click", () => {
-      loginTab.classList.add("active");
-      signupTab.classList.remove("active");
-      loginForm.style.display = "block";
-      signupForm.style.display = "none";
-    });
-    signupTab.addEventListener("click", () => {
-      signupTab.classList.add("active");
-      loginTab.classList.remove("active");
-      signupForm.style.display = "block";
-      loginForm.style.display = "none";
-    });
-    toSignup?.addEventListener("click", (e) => {
-      e.preventDefault();
-      signupTab.click();
-    });
-    toLogin?.addEventListener("click", (e) => {
-      e.preventDefault();
-      loginTab.click();
-    });
+        function redirectToMain() {
+            window.location.href = "main.html";
+        }
 
-    // login
-    loginBtn.addEventListener("click", () => {
-      const email = document.getElementById("login-email").value;
-      const password = document.getElementById("login-password").value;
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => (window.location.href = "main.html"))
-        .catch((err) => (loginAlert.textContent = err.message));
-    });
+        // Auto-redirect if already logged in
+        onAuthStateChanged(auth, (user) => {
+            if (user) redirectToMain();
+        });
 
-    // signup
-    signupBtn.addEventListener("click", () => {
-      const email = document.getElementById("signup-email").value;
-      const password = document.getElementById("signup-password").value;
-      const confirm = document.getElementById("confirm-password").value;
-      if (password !== confirm) {
-        signupAlert.textContent = "Passwords do not match.";
-        return;
-      }
-      createUserWithEmailAndPassword(auth, email, password)
-        .then(() => (window.location.href = "main.html"))
-        .catch((err) => (signupAlert.textContent = err.message));
-    });
-  </script>
+        // Login
+        loginBtn.addEventListener("click", async () => {
+            const email = document.getElementById("login-email").value.trim();
+            const password = document.getElementById("login-password").value;
+            if (!email || !password) return showAlert(loginAlert, "Please fill in all fields", "error");
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                redirectToMain();
+            } catch (err) {
+                const code = err.code || "";
+                let msg = err.message || "Login failed.";
+                if (code === "auth/invalid-email") msg = "Invalid email format.";
+                else if (code === "auth/user-not-found") msg = "No account with this email.";
+                else if (code === "auth/wrong-password") msg = "Incorrect password.";
+                showAlert(loginAlert, msg, "error");
+            }
+        });
+
+        // Signup
+        signupBtn.addEventListener("click", async () => {
+            const email = document.getElementById("signup-email").value.trim();
+            const password = document.getElementById("signup-password").value;
+            const confirm = document.getElementById("confirm-password").value;
+
+            if (!email || !password || !confirm) return showAlert(signupAlert, "Please fill in all fields", "error");
+            if (password !== confirm) return showAlert(signupAlert, "Passwords do not match", "error");
+            if (password.length < 6) return showAlert(signupAlert, "Password must be at least 6 characters", "error");
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                redirectToMain();
+            } catch (err) {
+                const code = err.code || "";
+                let msg = err.message || "Signup failed.";
+                if (code === "auth/email-already-in-use") msg = "Email is already in use.";
+                else if (code === "auth/invalid-email") msg = "Invalid email address.";
+                else if (code === "auth/weak-password") msg = "Password is too weak.";
+                showAlert(signupAlert, msg, "error");
+            }
+        });
+    </script>
 </body>
 </html>
