@@ -373,10 +373,12 @@
   </div>
 
   <script type="module">
+    // Firebase SDKs
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+    // --- Firebase config (unchanged). Optional: storageBucket can be "<project-id>.appspot.com"
     const firebaseConfig = {
       apiKey: "AIzaSyBtber_vI7Um--ZMaewPuTl8OGb9RDsxqM",
       authDomain: "kahseng-9092f.firebaseapp.com",
@@ -387,11 +389,13 @@
       appId: "1:676092858157:web:1fd51f23c334584ce00da4",
       measurementId: "G-NBJLZ62N4N"
     };
+
+    // --- Initialize FIRST
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // ----- UI refs (keep your existing ones) -----
+    // --- UI refs (your elements)
     const emailEl = document.getElementById('user-email');
     const logoutBtn = document.getElementById('logoutBtn');
     const cardsEl = document.getElementById('food-cards');
@@ -403,18 +407,35 @@
     const profileLast = document.getElementById('profile-lastlogin');
     const editEmail = document.getElementById('edit-email');
 
+    // --- Handy debug: set to the UID where your Python script is writing (from your screenshot)
+    // Leave "" for normal behavior (uses the signed-in user's uid).
+    const FORCE_UID = ""; // e.g. "Lr1lvepjRRRwLM0Jqi7DixmAf62"
+
+    // Tabs (unchanged)
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        const tabId = tab.getAttribute('data-tab');
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+      });
+    });
+
+    // Logout (unchanged)
     logoutBtn.addEventListener('click', () => signOut(auth).then(() => location.href = 'index.html'));
 
-    // --- DEBUG: set to the UID you see in Firebase console if you want to force-read for testing ---
-    const FORCE_UID = "";  // e.g. "Lr1lvepjRRRwLM0Jqi7DixmAf62" (leave "" for normal behavior)
+    // --- Auth + DB wiring
+    onAuthStateChanged(auth, async (user) => {
+      const effectiveUid = FORCE_UID || (user && user.uid);
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user && !FORCE_UID) {
+      if (!effectiveUid) {
+        console.warn('No user session on this origin. Redirecting to index.html…');
         location.href = 'index.html';
         return;
       }
 
-      const effectiveUid = FORCE_UID || user.uid;
+      // Header/profile info if we actually have a signed-in user
       if (user) {
         emailEl.textContent = user.email || user.uid;
         profileEmail.value = user.email || user.uid;
@@ -426,22 +447,24 @@
           if (lastSignIn) profileLast.value = lastSignIn.toLocaleString();
         } catch { }
       } else {
-        emailEl.textContent = `(debug mode) viewing UID: ${effectiveUid}`;
+        emailEl.textContent = `(debug) viewing UID: ${effectiveUid}`;
       }
 
+      console.log('Signed in as:', user ? user.uid : '(debug mode)');
       console.log('Reading path:', `users/${effectiveUid}/food_detections`);
 
       const detectionsRef = ref(db, `users/${effectiveUid}/food_detections`);
 
-      // One-time explicit read (will throw if rules block)
-      get(detectionsRef).then(snap => {
+      // One-time explicit read — surfaces permission errors
+      try {
+        const snap = await get(detectionsRef);
         console.log('Initial read exists:', snap.exists(), 'rows:', snap.exists() ? Object.keys(snap.val() || {}).length : 0);
-      }).catch(err => {
-        console.error('DB read error:', err.code, err.message);
-        alert('Database read failed: ' + err.code + ' — check your Realtime Database Rules.');
-      });
+      } catch (e) {
+        console.error('DB read error:', e.code, e.message);
+        alert('Database read failed: ' + e.code + ' — check your Realtime Database Rules.');
+      }
 
-      // Live listener
+      // Live updates
       onValue(detectionsRef, (snap) => {
         const data = snap.val() || {};
         console.log('onValue fired. rows:', Object.keys(data).length);
@@ -449,24 +472,22 @@
       });
     });
 
+    // --- Render helpers (your existing render with safe image)
     function objectToSortedArray(obj) {
       return Object.entries(obj).map(([id, v]) => ({ id, ...v }))
         .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
     }
-
     function getImageSrc(item) {
       if (item.food_img_base64) return `data:image/jpeg;base64,${item.food_img_base64}`;
       if (item.image_url) return item.image_url;
       const label = encodeURIComponent(item.food_name || 'No Image');
       return `https://via.placeholder.com/300x180/667eea/ffffff?text=${label}`;
     }
-
     function confidenceClass(pct) {
       if (pct >= 90) return 'high-confidence';
       if (pct >= 60) return 'medium-confidence';
       return 'low-confidence';
     }
-
     function renderFoodData(items) {
       cardsEl.innerHTML = '';
       let total = items.length, recognized = 0, sumConfidence = 0;
@@ -499,6 +520,7 @@
       }[m]));
     }
   </script>
+
 
 </body>
 
