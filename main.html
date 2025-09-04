@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Food Detection Dashboard</title>
+  <link rel="stylesheet" href="main.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="welcome">
+        <h1>Food Detection Dashboard</h1>
+        <p>Welcome, <span id="user-email">...</span></p>
+      </div>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3 id="total-detections">0</h3>
+        <p>Total Detections</p>
+      </div>
+      <div class="stat-card">
+        <h3 id="recognized-count">0</h3>
+        <p>Recognized</p>
+      </div>
+      <div class="stat-card">
+        <h3 id="avg-confidence">0%</h3>
+        <p>Avg Confidence</p>
+      </div>
+    </div>
+
+    <h2>Recent Detections</h2>
+    <div class="dashboard" id="food-cards"></div>
+
+    <!-- camera section -->
+    <section>
+      <h2>Cameras</h2>
+      <p id="cam-status">Loading…</p>
+      <select id="cameraSelect"></select>
+      <button id="refreshCamsBtn">Refresh</button>
+      <button id="registerCamsBtn">Register Cameras</button>
+      <video id="preview" autoplay playsinline style="width:100%;max-width:500px;"></video>
+      <button id="startPreviewBtn">Start Preview</button>
+      <button id="captureBtn">Capture & Upload</button>
+    </section>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+    import { getStorage, ref as sref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DB_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+
+    const emailEl = document.getElementById("user-email");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const cardsEl = document.getElementById("food-cards");
+
+    logoutBtn.onclick = () => signOut(auth).then(()=>window.location.href="index.html");
+
+    let currentStream = null;
+    let authedUser = null;
+
+    // sha256 for deviceId hashing
+    async function sha256(text){
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+
+    async function listCams(){
+      const tmp = await navigator.mediaDevices.getUserMedia({ video:true });
+      tmp.getTracks().forEach(t=>t.stop());
+      return (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput");
+    }
+
+    async function populateCameraList(){
+      const cams = await listCams();
+      const select = document.getElementById("cameraSelect");
+      select.innerHTML="";
+      cams.forEach((cam,i)=>{
+        const opt=document.createElement("option");
+        opt.value=cam.deviceId;
+        opt.textContent=cam.label||`Camera ${i+1}`;
+        select.appendChild(opt);
+      });
+      document.getElementById("cam-status").textContent=`${cams.length} camera(s) found`;
+    }
+
+    async function startPreview(){
+      const deviceId=document.getElementById("cameraSelect").value;
+      if(currentStream) currentStream.getTracks().forEach(t=>t.stop());
+      currentStream=await navigator.mediaDevices.getUserMedia({ video:{deviceId:{exact:deviceId}} });
+      document.getElementById("preview").srcObject=currentStream;
+    }
+
+    async function registerCamerasForUser(uid){
+      const cams=await listCams();
+      const updates={};
+      for(const cam of cams){
+        const camKey=await sha256(cam.deviceId);
+        updates[`users/${uid}/cameras/${camKey}`]={
+          label: cam.label||"Unnamed",
+          lastSeen: Date.now()
+        };
+      }
+      await update(ref(db),updates);
+      document.getElementById("cam-status").textContent="Cameras registered!";
+    }
+
+    async function captureAndUpload(){
+      if(!currentStream) await startPreview();
+      const video=document.getElementById("preview");
+      const canvas=document.createElement("canvas");
+      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      canvas.getContext("2d").drawImage(video,0,0);
+      const dataUrl=canvas.toDataURL("image/jpeg",0.9);
+
+      const ts=Date.now();
+      const imgRef=sref(storage,`users/${authedUser.uid}/captures/${ts}.jpg`);
+      await uploadString(imgRef,dataUrl,"data_url");
+      const url=await getDownloadURL(imgRef);
+
+      const itemRef=push(ref(db,`users/${authedUser.uid}/food_detections`));
+      await set(itemRef,{
+        camera_label: document.getElementById("cameraSelect").selectedOptions[0]?.textContent||"Camera",
+        image_url:url,
+        timestamp:ts,
+        date_captured:new Date(ts).toISOString(),
+        status:"captured"
+      });
+    }
+
+    // wire buttons
+    document.getElementById("refreshCamsBtn").onclick=populateCameraList;
+    document.getElementById("startPreviewBtn").onclick=startPreview;
+    document.getElementById("registerCamsBtn").onclick=()=>registerCamerasForUser(authedUser.uid);
+    document.getElementById("captureBtn").onclick=captureAndUpload;
+
+    // live feed
+    onAuthStateChanged(auth,user=>{
+      if(!user){window.location.href="index.html";return;}
+      authedUser=user;
+      emailEl.textContent=user.email;
+      populateCameraList();
+
+      const detectionsRef=ref(db,`users/${user.uid}/food_detections`);
+      onValue(detectionsRef,snap=>{
+        const data=snap.val()||{};
+        renderDetections(Object.values(data));
+      });
+    });
+
+    function renderDetections(items){
+      items.sort((a,b)=>b.timestamp-a.timestamp);
+      cardsEl.innerHTML="";
+      let total=items.length,recog=0,sum=0;
+      items.forEach(item=>{
+        if(item.status==="recognized") recog++;
+        if(item.confidence_score) sum+=item.confidence_score;
+        const div=document.createElement("div");
+        div.className="card";
+        div.innerHTML=`
+          <h3>${item.food_name||"Unknown"}</h3>
+          <div class="food-image"><img src="${item.image_url}" /></div>
+          <p>Status: ${item.status}</p>
+          <p>Date: ${item.date_captured}</p>`;
+        cardsEl.appendChild(div);
+      });
+      document.getElementById("total-detections").textContent=total;
+      document.getElementById("recognized-count").textContent=recog;
+      document.getElementById("avg-confidence").textContent= total? Math.round((sum/total)*100)+"%":"0%";
+    }
+  </script>
+</body>
+</html>
