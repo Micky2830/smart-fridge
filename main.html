@@ -288,24 +288,64 @@
       return 'low-confidence';
     }
 
-    function dedupeByFoodLatest(items){
-      const map = new Map(); // key = normalized food name
+    // ======== NEW: Helpers to dedupe by IMAGE (not text) ========
+
+    // Simple string hash (djb2)
+    function hashString(s){
+      let h = 5381;
+      for(let i=0;i<s.length;i++) h = ((h<<5)+h) + s.charCodeAt(i);
+      return (h >>> 0).toString(36); // unsigned, base36
+    }
+
+    // Extract a stable "image key" from Storage URL or base64; fallback to text
+    function extractImageKey(item){
+      if(item.image_url){
+        try{
+          const u = new URL(item.image_url);
+          // Expect: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>?...
+          const parts = u.pathname.split('/o/');
+          if(parts.length > 1){
+            const pathEncoded = parts[1];           // "<path>" URL-encoded (may still include more segments)
+            const pathDecoded = decodeURIComponent(pathEncoded);
+            return `gcs:${pathDecoded}`;            // stable key for Storage object
+          }
+          // Other URL shape: use origin + pathname (strip query)
+          return `url:${u.origin}${u.pathname}`;
+        }catch{
+          // Not a standard URL; strip query if present
+          const idx = item.image_url.indexOf('?');
+          const urlBase = idx >= 0 ? item.image_url.slice(0, idx) : item.image_url;
+          return `url:${urlBase}`;
+        }
+      }
+      if(item.food_img_base64){
+        const head = String(item.food_img_base64).slice(0, 2048); // sample head
+        return `b64:${hashString(head)}`;
+      }
+      // last resort: text
+      const name = String(item.food_name||'').trim().toLowerCase();
+      return `txt:${name}`;
+    }
+
+    // Keep the latest record per unique image key
+    function dedupeByImageLatest(items){
+      const map = new Map(); // imageKey -> latest item
       for(const it of items){
-        const key = String(it.food_name||'').trim().toLowerCase();
-        if(!key) continue;
+        const key = extractImageKey(it);
         const prev = map.get(key);
         const curTs = Number(it.timestamp||0);
         if(!prev || curTs > Number(prev.timestamp||0)){
-          map.set(key, it); // keep the latest one
+          map.set(key, it);
         }
       }
-      // return newest first
-      return Array.from(map.values()).sort((a,b)=>Number(b.timestamp||0)-Number(a.timestamp||0));
+      return Array.from(map.values())
+                  .sort((a,b)=>Number(b.timestamp||0)-Number(a.timestamp||0));
     }
 
+    // ============================================================
 
     function renderFoodData(items){
-      lastItems = items.slice();
+      lastItems = items.slice(); // keep
       populateCamFilter(items);
 
       const selCam = camFilter.value;
@@ -318,8 +358,8 @@
         return passCam && passConf;
       });
 
-      // ✅ NEW: dedupe by food name (keep latest)
-      const deduped = dedupeByFoodLatest(filtered);
+      // ✅ Deduplicate by IMAGE (keep latest per unique image key)
+      const deduped = dedupeByImageLatest(filtered);
 
       cardsEl.innerHTML = '';
       let total = deduped.length, recognized = 0, sumConf = 0;
