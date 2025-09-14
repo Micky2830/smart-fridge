@@ -288,8 +288,24 @@
       return 'low-confidence';
     }
 
+    function dedupeByFoodLatest(items){
+      const map = new Map(); // key = normalized food name
+      for(const it of items){
+        const key = String(it.food_name||'').trim().toLowerCase();
+        if(!key) continue;
+        const prev = map.get(key);
+        const curTs = Number(it.timestamp||0);
+        if(!prev || curTs > Number(prev.timestamp||0)){
+          map.set(key, it); // keep the latest one
+        }
+      }
+      // return newest first
+      return Array.from(map.values()).sort((a,b)=>Number(b.timestamp||0)-Number(a.timestamp||0));
+    }
+
+
     function renderFoodData(items){
-      lastItems = items.slice(); // keep
+      lastItems = items.slice();
       populateCamFilter(items);
 
       const selCam = camFilter.value;
@@ -302,10 +318,13 @@
         return passCam && passConf;
       });
 
-      cardsEl.innerHTML = '';
-      let total = filtered.length, recognized = 0, sumConf = 0;
+      // ✅ NEW: dedupe by food name (keep latest)
+      const deduped = dedupeByFoodLatest(filtered);
 
-      filtered.forEach(item=>{
+      cardsEl.innerHTML = '';
+      let total = deduped.length, recognized = 0, sumConf = 0;
+
+      deduped.forEach(item=>{
         const conf = Number(item.confidence_score||0);
         const pct  = Math.round(conf*100);
         if(item.status==='recognized') recognized++;
