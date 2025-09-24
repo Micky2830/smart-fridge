@@ -1,173 +1,416 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login & Signup - Firebase Auth</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
-    body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-    .container{background:#fff;border-radius:10px;box-shadow:0 15px 30px rgba(0,0,0,.1);width:100%;max-width:400px;overflow:hidden}
-    .form-container{padding:30px}
-    .tabs{display:flex;margin-bottom:20px}
-    .tab{flex:1;text-align:center;padding:10px;cursor:pointer;border-bottom:2px solid #eee;font-weight:600;color:#888}
-    .tab.active{color:#667eea;border-bottom:2px solid #667eea}
-    h2{text-align:center;margin-bottom:20px;color:#333}
-    .form-group{margin-bottom:15px}
-    label{display:block;margin-bottom:5px;font-weight:500;color:#555}
-    input{width:100%;padding:12px;border:1px solid #ddd;border-radius:5px;font-size:16px;transition:border .3s}
-    input:focus{border-color:#667eea;outline:none}
-    button{width:100%;padding:12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;border-radius:5px;font-size:16px;cursor:pointer;transition:opacity .3s}
-    button:hover{opacity:.9}
-    .message{margin-top:15px;text-align:center;color:#666;font-size:14px}
-    .message a{color:#667eea;text-decoration:none}
-    .alert{padding:10px;border-radius:5px;margin-bottom:15px;display:none}
-    .alert-success{background:#d4edda;color:#155724}
-    .alert-error{background:#f8d7da;color:#721c24}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Signup - Firebase Auth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+        
+        .form-container {
+            padding: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 2px solid #eee;
+            font-weight: 600;
+            color: #888;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        .message {
+            margin-top: 15px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .message a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .alert {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="tabs">
-      <div class="tab active" id="login-tab">Login</div>
-      <div class="tab" id="signup-tab">Sign Up</div>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" id="login-tab">Login</div>
+            <div class="tab" id="signup-tab">Sign Up</div>
+        </div>
+        
+        <div class="form-container">
+            <div id="login-form">
+                <h2>Welcome Back</h2>
+                <div id="login-alert" class="alert"></div>
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                </div>
+                <button id="login-btn">Login</button>
+                <div class="message">
+                    Don't have an account? <a href="#" id="to-signup">Sign Up</a>
+                </div>
+            </div>
+            
+            <div id="signup-form" style="display: none;">
+                <h2>Create Account</h2>
+                <div id="signup-alert" class="alert"></div>
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password (min. 6 characters)">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" placeholder="Confirm your password">
+                </div>
+                <button id="signup-btn">Sign Up</button>
+                <div class="message">
+                    Already have an account? <a href="#" id="to-login">Login</a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="form-container">
-      <!-- Login -->
-      <div id="login-form">
-        <h2>Welcome Back</h2>
-        <div id="login-alert" class="alert"></div>
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" placeholder="Enter your email"/>
-        </div>
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" placeholder="Enter your password"/>
-        </div>
-        <button id="login-btn">Login</button>
-        <div class="message">
-          Don't have an account? <a href="#" id="to-signup">Sign Up</a>
-        </div>
-      </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword,
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-      <!-- Signup -->
-      <div id="signup-form" style="display:none;">
-        <h2>Create Account</h2>
-        <div id="signup-alert" class="alert"></div>
-        <div class="form-group">
-          <label for="signup-email">Email</label>
-          <input type="email" id="signup-email" placeholder="Enter your email"/>
-        </div>
-        <div class="form-group">
-          <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" placeholder="Create a password (min. 6 characters)"/>
-        </div>
-        <div class="form-group">
-          <label for="confirm-password">Confirm Password</label>
-          <input type="password" id="confirm-password" placeholder="Confirm your password"/>
-        </div>
-        <button id="signup-btn">Sign Up</button>
-        <div class="message">
-          Already have an account? <a href="#" id="to-login">Login</a>
-        </div>
-      </div>
-    </div>
-  </div>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtber_vI7Um--ZMaewPuTl8OGb9RDsxqM",
+            authDomain: "kahseng-9092f.firebaseapp.com",
+            databaseURL: "https://kahseng-9092f-default-rtdb.firebaseio.com",
+            projectId: "kahseng-9092f",
+            storageBucket: "kahseng-9092f.firebasestorage.app",
+            messagingSenderId: "676092858157",
+            appId: "1:676092858157:web:1fd51f23c334584ce00da4",
+            measurementId: "G-NBJLZ62N4N"
+        };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBtber_vI7Um--ZMaewPuTl8OGb9RDsxqM",
-      authDomain: "kahseng-9092f.firebaseapp.com",
-      databaseURL: "https://kahseng-9092f-default-rtdb.firebaseio.com",
-      projectId: "kahseng-9092f",
-      storageBucket: "kahseng-9092f.appspot.com",
-      messagingSenderId: "676092858157",
-      appId: "1:676092858157:web:1fd51f23c334584ce00da4",
-      measurementId: "G-NBJLZ62N4N"
-    };
+        // DOM elements
+        const loginTab = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const toSignup = document.getElementById('to-signup');
+        const toLogin = document.getElementById('to-login');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const loginAlert = document.getElementById('login-alert');
+        const signupAlert = document.getElementById('signup-alert');
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+        // Switch between login and signup forms
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            loginForm.style.display = 'block';
+            signupForm.style.display = 'none';
+        });
 
-    const loginTab = document.getElementById("login-tab");
-    const signupTab = document.getElementById("signup-tab");
-    const loginForm = document.getElementById("login-form");
-    const signupForm = document.getElementById("signup-form");
-    const toSignup  = document.getElementById("to-signup");
-    const toLogin   = document.getElementById("to-login");
-    const loginBtn  = document.getElementById("login-btn");
-    const signupBtn = document.getElementById("signup-btn");
-    const loginAlert  = document.getElementById("login-alert");
-    const signupAlert = document.getElementById("signup-alert");
+        signupTab.addEventListener('click', () => {
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            signupForm.style.display = 'block';
+            loginForm.style.display = 'none';
+        });
 
-    function showAlert(el, message, type){
-      el.textContent = message;
-      el.classList.remove("alert-success","alert-error");
-      el.classList.add(type==="success"?"alert-success":"alert-error");
-      el.style.display = "block";
-      setTimeout(()=>el.style.display="none", 4000);
-    }
+        toSignup.addEventListener('click', (e) => {
+            e.preventDefault();
+            signupTab.click();
+        });
 
-    // Tabs
-    loginTab.addEventListener("click", ()=>{
-      loginTab.classList.add("active"); signupTab.classList.remove("active");
-      loginForm.style.display="block";  signupForm.style.display="none";
-    });
-    signupTab.addEventListener("click", ()=>{
-      signupTab.classList.add("active"); loginTab.classList.remove("active");
-      signupForm.style.display="block";  loginForm.style.display="none";
-    });
-    toSignup.addEventListener("click", e=>{e.preventDefault(); signupTab.click();});
-    toLogin.addEventListener("click",  e=>{e.preventDefault(); loginTab.click(); });
+        toLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginTab.click();
+        });
 
-    // Auto redirect if already authed
-    onAuthStateChanged(auth, (user)=>{
-      if(user){ window.location.href = "main.html"; }
-    });
+        // Login function
+        loginBtn.addEventListener('click', () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                showAlert(loginAlert, 'Please fill in all fields', 'error');
+                return;
+            }
+            
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // Signed in 
+                    const user = userCredential.user;
+                    
+                    // Send to backend to create session
+                    fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email: email, password: password })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAlert(loginAlert, data.message, 'success');
+                            // Redirect to main page after successful login
+                            setTimeout(() => {
+                                window.location.href = data.redirect;
+                            }, 1000);
+                        } else {
+                            showAlert(loginAlert, data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showAlert(loginAlert, 'Server error. Please try again.', 'error');
+                    });
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    let errorMessage = error.message;
+                    
+                    // User-friendly error messages
+                    if (errorCode === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email address format.';
+                    } else if (errorCode === 'auth/user-not-found') {
+                        errorMessage = 'No account found with this email.';
+                    } else if (errorCode === 'auth/wrong-password') {
+                        errorMessage = 'Incorrect password.';
+                    }
+                    
+                    showAlert(loginAlert, errorMessage, 'error');
+                });
 
-    // Login
-    loginBtn.addEventListener("click", async ()=>{
-      const email = document.getElementById("login-email").value.trim();
-      const pass  = document.getElementById("login-password").value;
-      if(!email || !pass) return showAlert(loginAlert,"Please fill in all fields","error");
-      try{
-        await signInWithEmailAndPassword(auth, email, pass);
-        window.location.href = "main.html";
-      }catch(err){
-        const code = err.code||"";
-        let msg = err.message || "Login failed.";
-        if(code==="auth/invalid-email")   msg="Invalid email format.";
-        if(code==="auth/user-not-found")  msg="No account with this email.";
-        if(code==="auth/wrong-password")  msg="Incorrect password.";
-        showAlert(loginAlert, msg, "error");
-      }
-    });
+            user.getIdToken().then(idToken => {
+                fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) window.location.href = data.redirect;
+                    else showAlert(loginAlert, data.message, 'error');
+                });
+                });
 
-    // Signup
-    signupBtn.addEventListener("click", async ()=>{
-      const email = document.getElementById("signup-email").value.trim();
-      const pass  = document.getElementById("signup-password").value;
-      const conf  = document.getElementById("confirm-password").value;
-      if(!email || !pass || !conf) return showAlert(signupAlert,"Please fill in all fields","error");
-      if(pass !== conf)             return showAlert(signupAlert,"Passwords do not match","error");
-      if(pass.length < 6)           return showAlert(signupAlert,"Password must be at least 6 characters","error");
-      try{
-        await createUserWithEmailAndPassword(auth, email, pass);
-        window.location.href = "main.html";
-      }catch(err){
-        const code = err.code||"";
-        let msg = err.message || "Signup failed.";
-        if(code==="auth/email-already-in-use") msg="Email is already in use.";
-        if(code==="auth/invalid-email")        msg="Invalid email address.";
-        if(code==="auth/weak-password")        msg="Password is too weak.";
-        showAlert(signupAlert, msg, "error");
-      }
-    });
-  </script>
+        });
+
+        // Signup function
+        signupBtn.addEventListener('click', () => {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (!email || !password || !confirmPassword) {
+                showAlert(signupAlert, 'Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showAlert(signupAlert, 'Passwords do not match', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showAlert(signupAlert, 'Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // Signed up 
+                    const user = userCredential.user;
+                    
+                    // Send to backend
+                    fetch('/signup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            email: email, 
+                            password: password,
+                            confirmPassword: confirmPassword
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAlert(signupAlert, data.message, 'success');
+                            // Redirect to main page after successful signup
+                            setTimeout(() => {
+                                window.location.href = data.redirect;
+                            }, 1000);
+                        } else {
+                            showAlert(signupAlert, data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showAlert(signupAlert, 'Server error. Please try again.', 'error');
+                    });
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    let errorMessage = error.message;
+                    
+                    // User-friendly error messages
+                    if (errorCode === 'auth/email-already-in-use') {
+                        errorMessage = 'An account with this email already exists.';
+                    } else if (errorCode === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email address format.';
+                    } else if (errorCode === 'auth/weak-password') {
+                        errorMessage = 'Password is too weak.';
+                    }
+                    
+                    showAlert(signupAlert, errorMessage, 'error');
+                });
+        });
+
+        // Show alert message
+        function showAlert(alertElement, message, type) {
+            alertElement.textContent = message;
+            alertElement.classList.remove('alert-success', 'alert-error');
+            alertElement.classList.add(type === 'success' ? 'alert-success' : 'alert-error');
+            alertElement.style.display = 'block';
+            
+            // Hide alert after 5 seconds
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Check if user is already logged in
+        function checkAuthStatus() {
+            fetch('/check_session')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        // Redirect to main page if already logged in
+                        window.location.href = '/main';
+                    }
+                });
+        }
+
+        // Check authentication status on page load
+        checkAuthStatus();
+    </script>
 </body>
 </html>
