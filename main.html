@@ -20,12 +20,19 @@
         }
         .welcome h1 { font-size: 24px; margin-bottom: 5px; }
         .welcome p { opacity: 0.9; }
-        .logout-btn {
-            padding: 10px 20px; background: rgba(255,255,255,0.2); color: white;
-            border: 1px solid rgba(255,255,255,0.3); border-radius: 5px;
+        .logout-btn,
+        .scan-btn { 
+            padding: 10px 15px; 
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3); 
+            border-radius: 5px;
+            color: white;
             cursor: pointer; font-size: 16px; transition: all .3s;
+            border:none;
+            margin-left:10px;
         }
-        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .logout-btn:hover,
+        .scan-btn:hover { background: rgba(255,255,255,0.3); }
 
         .nav-tabs {
             display: flex; background: white; border-radius: 10px;
@@ -117,8 +124,10 @@
                 <h1>Food Detection Dashboard</h1>
                 <p>Welcome, <span id="user-email">user@example.com</span>!</p>
             </div>
-            <button class="scan-btn">Scan Me</button>
-            <button class="logout-btn" id="logoutBtn">Logout</button>
+            <div class="btn">
+                <button class="scan-btn" id="scanBtn">Scan Me</button>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
         </header>
 
         <div class="nav-tabs">
@@ -213,6 +222,8 @@
 
     <script type="module">
         // ---- Firebase SDKs ----
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } 
+        from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
@@ -229,6 +240,7 @@
             measurementId: "G-NBJLZ62N4N"
         };
 
+        const storage = getStorage(app);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
@@ -236,6 +248,7 @@
         // ---- UI elements ----
         const emailEl = document.getElementById('user-email');
         const logoutBtn = document.getElementById('logoutBtn');
+        const scanBtn = document.getElementById('scanBtn')
         const cardsEl = document.getElementById('food-cards');
         const totalEl = document.getElementById('total-detections');
         const recogEl = document.getElementById('recognized-count');
@@ -261,6 +274,58 @@
         logoutBtn.addEventListener('click', () => {
             signOut(auth).then(() => window.location.href = 'index.html');
         });
+        
+        scanBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('camera');
+                const canvas = document.getElementById('snapshot');
+                video.srcObject = stream;
+
+                await new Promise(r => setTimeout(r, 1000));
+
+                const ctx = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+
+                stream.getTracks().forEach(track => track.stop());
+
+                canvas.toBlob(async (blob) => {
+                    if (!auth.currentUser) return alert("Not logged in");
+                    const uid = auth.currentUser.uid;
+                    const filename = `captures/${uid}/${Date.now()}.jpg`;
+
+                    // Upload to Firebase Storage
+                    const fileRef = sRef(storage, filename);
+                    await uploadBytes(fileRef, blob);
+
+                    // Get public URL
+                    const url = await getDownloadURL(fileRef);
+
+                    // Save record to Realtime DB
+                    const detection = {
+                        food_name: "Scanned Item",
+                        status: "pending",
+                        confidence_score: 0,
+                        image_url: url,
+                        date_captured: new Date().toLocaleString(),
+                        timestamp: Date.now()
+                    };
+                const dbRef = ref(db, `users/${uid}/food_detections/${Date.now()}`);
+                await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js")
+                    .then(({ set }) => set(dbRef, detection));
+
+                    alert("Image captured & uploaded!");
+                }, 'image/jpeg');
+                } catch (err) {
+                    console.error(err);
+                    alert("Camera error: " + err.message);
+            }
+        });
+
+
+        
 
         // ---- Auth gate + live database ----
         onAuthStateChanged(auth, (user) => {
@@ -343,5 +408,8 @@
             }[m]));
         }
     </script>
+    <video id="camera" autoplay playsinline style="display:none;"></video>
+    <canvas id="snapshot" style="display:none;"></canvas>
+
 </body>
 </html>
