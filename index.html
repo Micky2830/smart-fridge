@@ -254,62 +254,30 @@
             }
             
             signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    // Signed in 
-                    const user = userCredential.user;
-                    
-                    // Send to backend to create session
+            .then((userCredential) => {
+                const user = userCredential.user;
+                user.getIdToken().then(idToken => {
                     fetch('/login', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ email: email, password: password })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken })
                     })
-                    .then(response => response.json())
+                    .then(res => res.json())
                     .then(data => {
                         if (data.success) {
                             showAlert(loginAlert, data.message, 'success');
-                            // Redirect to main page after successful login
-                            setTimeout(() => {
-                                window.location.href = data.redirect;
-                            }, 1000);
+                            setTimeout(() => { window.location.href = data.redirect; }, 1000);
                         } else {
                             showAlert(loginAlert, data.message, 'error');
                         }
                     })
-                    .catch(error => {
-                        showAlert(loginAlert, 'Server error. Please try again.', 'error');
-                    });
-                })
-                .catch((error) => {
-                    const errorCode = error.code;
-                    let errorMessage = error.message;
-                    
-                    // User-friendly error messages
-                    if (errorCode === 'auth/invalid-email') {
-                        errorMessage = 'Invalid email address format.';
-                    } else if (errorCode === 'auth/user-not-found') {
-                        errorMessage = 'No account found with this email.';
-                    } else if (errorCode === 'auth/wrong-password') {
-                        errorMessage = 'Incorrect password.';
-                    }
-                    
-                    showAlert(loginAlert, errorMessage, 'error');
+                    .catch(() => showAlert(loginAlert, 'Server error. Please try again.', 'error'));
                 });
+            })
+            .catch((error) => {
+                // handle auth errors
+            });
 
-            user.getIdToken().then(idToken => {
-                fetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idToken })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) window.location.href = data.redirect;
-                    else showAlert(loginAlert, data.message, 'error');
-                });
-                });
 
         });
 
