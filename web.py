@@ -1,17 +1,16 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
-from firebase_admin import credentials, db, auth as firebase_auth
-import os
-import requests
-import json
-from datetime import datetime
+from firebase_admin import credentials, db
 import firebase_admin
+from firebase_admin import auth as firebase_auth
+import os
 
-app = Flask(__name__)
+# Make Flask look for templates in the current folder (where index.html & main.html are)
+app = Flask(__name__, template_folder='.')
 app.secret_key = os.urandom(24)
 CORS(app)
 
-# Firebase configuration
+# Firebase Admin SDK (server) configuration
 FIREBASE_DB_URL = "https://kahseng-9092f-default-rtdb.firebaseio.com"
 
 cred = credentials.Certificate("serviceAccountKey.json")
@@ -33,46 +32,42 @@ def main():
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    id_token = data.get('idToken')   # frontend must send this
-
+    data = request.get_json() or {}
+    id_token = data.get('idToken')
+    if not id_token:
+        return jsonify({'success': False, 'message': 'Missing idToken'}), 400
     try:
         decoded = firebase_auth.verify_id_token(id_token)
         uid = decoded['uid']
         email = decoded.get('email', uid)
-
         session['uid'] = uid
         session['user'] = email
-
-        return jsonify({'success': True, 'message': 'Login successful', 'redirect': '/main'})
+        return jsonify({'success': True, 'message': 'Login successful', 'redirect': '/main'}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
-    
+        return jsonify({'success': False, 'message': f'Auth failed: {e}'}), 401
+
+# If you want a separate signup route, you can keep it, but
+# the recommended flow is to just call /login with idToken after createUserWithEmailAndPassword.
 @app.route('/signup', methods=['POST'])
 def signup():
-    # This endpoint would typically create a new user in Firebase
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    confirm_password = data.get('confirmPassword')
-    
-    # Basic validation
-    if not email or not password or not confirm_password:
-        return jsonify({'success': False, 'message': 'All fields are required'})
-    
-    if password != confirm_password:
-        return jsonify({'success': False, 'message': 'Passwords do not match'})
-    
-    if len(password) < 6:
-        return jsonify({'success': False, 'message': 'Password must be at least 6 characters'})
-    
-    # In a real implementation, you would create the user in Firebase here
-    session['user'] = email
-    return jsonify({'success': True, 'message': 'Sign up successful', 'redirect': '/main'})
+    data = request.get_json() or {}
+    id_token = data.get('idToken')
+    if not id_token:
+        return jsonify({'success': False, 'message': 'Missing idToken'}), 400
+    try:
+        decoded = firebase_auth.verify_id_token(id_token)
+        uid = decoded['uid']
+        email = decoded.get('email', uid)
+        session['uid'] = uid
+        session['user'] = email
+        return jsonify({'success': True, 'message': 'Sign up successful', 'redirect': '/main'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Auth failed: {e}'}), 401
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
+    session.pop('uid', None)
     return redirect(url_for('index'))
 
 @app.route('/check_session')
@@ -86,18 +81,15 @@ def get_food_data():
     try:
         if 'uid' not in session:
             return jsonify({'success': False, 'message': 'Not logged in'}), 401
-
-        uid = session['uid']   # dynamic per user
+        uid = session['uid']
         ref = db.reference(f"users/{uid}/food_detections")
         food_data = ref.get()
-
         if not food_data:
             return jsonify({'success': False, 'message': 'No data found'})
-
         return jsonify({'success': True, 'data': food_data})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
-
 if __name__ == '__main__':
+    # Use debug only in development
     app.run(debug=True)
