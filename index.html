@@ -141,7 +141,7 @@
         return data;
     }
     function checkAuthStatus() {
-        fetch('/check_session')
+        fetch('/check_session', { credentials: 'same-origin' })
             .then(r => r.json())
             .then(d => { if (d.logged_in) window.location.href = '/main'; })
             .catch(() => {});
@@ -160,6 +160,7 @@
             const data = await fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type':'application/json' },
+                credentials: 'same-origin',
                 body: JSON.stringify({ idToken })
             }).then(jsonOrError);
 

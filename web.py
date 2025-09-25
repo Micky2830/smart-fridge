@@ -8,7 +8,7 @@ import os
 # Make Flask look for templates in the current folder (where index.html & main.html are)
 app = Flask(__name__, template_folder='.')
 app.secret_key = os.urandom(24)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Firebase Admin SDK (server) configuration
 FIREBASE_DB_URL = "https://kahseng-9092f-default-rtdb.firebaseio.com"
