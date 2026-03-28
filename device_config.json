@@ -1,0 +1,12 @@
+{
+  "accounts": [
+    { "user_uid": "Lr1lvepjRRRwLM0Jqi7DixmAf62", "camera_id": "laptop_cam" },
+    { "user_uid": "uEcslIsV7tVaChP55Lmksgwfptj1", "camera_id": "laptop_cam" }
+  ],
+  "camera_index": 0,
+  "min_confidence": 0.30,
+  "capture_interval_ms": 1500,
+  "yolo_confidence": 0.50,
+  "min_detection_size": 0.02,
+  "face_avoidance": true
+}
